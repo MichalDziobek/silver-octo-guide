@@ -41,7 +41,7 @@ namespace silver_octo_guide
                     await cloudBlobContainer.SetPermissionsAsync(permissions);
 
                     // Create a file in your local MyDocuments folder to upload to a blob.
-                    string localFileName = "QuickStart_" + Guid.NewGuid().ToString() + ".txt";
+                    string localFileName = "MISOWS_" + Guid.NewGuid().ToString() + ".txt";
                     sourceFile = localFileName;
                     // Write text to the file.
                     var r = new Random();
@@ -56,7 +56,11 @@ namespace silver_octo_guide
                     // Get a reference to the blob address, then upload the file to the blob.
                     // Use the value of localFileName for the blob name.
                     CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(localFileName);
+                    var beforeUpload = DateTime.Now;
                     await cloudBlockBlob.UploadFromFileAsync(sourceFile);
+                    var afterUpload = DateTime.Now;
+                    var uploadDuration = afterUpload - beforeUpload;
+                    Console.WriteLine($"Upload duration = {uploadDuration.Milliseconds} ms");
 
                     // List the blobs in the container.
                     Console.WriteLine("Listing blobs in container.");
@@ -78,7 +82,12 @@ namespace silver_octo_guide
                     destinationFile = sourceFile.Replace(".txt", "_DOWNLOADED.txt");
                     Console.WriteLine("Downloading blob to {0}", destinationFile);
                     Console.WriteLine();
+                    var beforeDownload = DateTime.Now;
                     await cloudBlockBlob.DownloadToFileAsync(destinationFile, FileMode.Create);
+                    var afterDownload = DateTime.Now;
+                    var downloadDuration = afterDownload - beforeDownload;
+                    Console.WriteLine($"Upload duration = {downloadDuration.Milliseconds} ms");
+
                 }
                 catch (StorageException ex)
                 {
@@ -102,10 +111,7 @@ namespace silver_octo_guide
             }
             else
             {
-                Console.WriteLine(
-                    "A connection string has not been defined in the system environment variables. " +
-                    "Add a environment variable named 'storageconnectionstring' with your storage " +
-                    "connection string as a value.");
+                Console.WriteLine("Incorrect connection string");
             }
         }
     }
