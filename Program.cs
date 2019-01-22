@@ -1,6 +1,7 @@
 ﻿using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -17,9 +18,8 @@ namespace silver_octo_guide
         private static async Task ProcessAsync()
         {
             CloudBlobContainer cloudBlobContainer = null;
-            string sourceFile = null;
-            string destinationFile = null;
-            
+            var fileNames = new List<string>();
+
             string storageConnectionString = Console.ReadLine();
 
             // Check whether the connection string can be parsed.
@@ -40,27 +40,30 @@ namespace silver_octo_guide
                     };
                     await cloudBlobContainer.SetPermissionsAsync(permissions);
 
-                    // Create a file in your local MyDocuments folder to upload to a blob.
-                    string localFileName = "MISOWS_" + Guid.NewGuid().ToString() + ".txt";
-                    sourceFile = localFileName;
-                    // Write text to the file.
                     var r = new Random();
-                    var content = new byte[1024 * 1024 * 10];
-                    r.NextBytes(content);
-                    File.WriteAllBytes(sourceFile, content);
+                    // Create a file in your local MyDocuments folder to upload to a blob.
 
-                    Console.WriteLine("Temp file = {0}", sourceFile);
-                    Console.WriteLine("Uploading to Blob storage as blob '{0}'", localFileName);
-                    Console.WriteLine();
+                    for (int i = 0; i < 10; i++)
+                    {
+                        fileNames.Add("MISOWS_" + Guid.NewGuid().ToString() + ".txt");
+                        var content = new byte[1024 * 1024 * 10];
+                        r.NextBytes(content);
+                        File.WriteAllBytes(fileNames[i], content);
+                    }
+
+
 
                     // Get a reference to the blob address, then upload the file to the blob.
                     // Use the value of localFileName for the blob name.
-                    CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(localFileName);
                     var beforeUpload = DateTime.Now;
-                    await cloudBlockBlob.UploadFromFileAsync(sourceFile);
+                    foreach (var filename in fileNames)
+                    {
+                        CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(filename);
+                        await cloudBlockBlob.UploadFromFileAsync(filename); 
+                    }
                     var afterUpload = DateTime.Now;
                     var uploadDuration = afterUpload - beforeUpload;
-                    Console.WriteLine($"Upload duration = {uploadDuration.Milliseconds} ms");
+                    Console.WriteLine($"Upload duration = {uploadDuration.TotalMilliseconds} ms");
 
                     // List the blobs in the container.
                     Console.WriteLine("Listing blobs in container.");
@@ -79,14 +82,16 @@ namespace silver_octo_guide
 
                     // Download the blob to a local file, using the reference created earlier. 
                     // Append the string "_DOWNLOADED" before the .txt extension so that you can see both files in MyDocuments.
-                    destinationFile = sourceFile.Replace(".txt", "_DOWNLOADED.txt");
-                    Console.WriteLine("Downloading blob to {0}", destinationFile);
-                    Console.WriteLine();
+
                     var beforeDownload = DateTime.Now;
-                    await cloudBlockBlob.DownloadToFileAsync(destinationFile, FileMode.Create);
+                    foreach (var filename in fileNames)
+                    {
+                        CloudBlockBlob cloudBlockBlob = cloudBlobContainer.GetBlockBlobReference(filename);
+                        await cloudBlockBlob.DownloadToFileAsync(filename.Replace(".txt", "_DOWNLOADED.txt"), FileMode.Create); 
+                    }
                     var afterDownload = DateTime.Now;
                     var downloadDuration = afterDownload - beforeDownload;
-                    Console.WriteLine($"Upload duration = {downloadDuration.Milliseconds} ms");
+                    Console.WriteLine($"Download duration = {downloadDuration.TotalMilliseconds} ms");
 
                 }
                 catch (StorageException ex)
@@ -105,8 +110,11 @@ namespace silver_octo_guide
                     }
                     Console.WriteLine("Deleting the local source file and local downloaded files");
                     Console.WriteLine();
-                    File.Delete(sourceFile);
-                    File.Delete(destinationFile);
+                    foreach (var filename in fileNames)
+                    {
+                        File.Delete(filename);
+                        File.Delete(filename.Replace(".txt", "_DOWNLOADED.txt")); 
+                    }
                 }
             }
             else
